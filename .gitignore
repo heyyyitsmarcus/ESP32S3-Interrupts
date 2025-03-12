@@ -1,0 +1,6 @@
+# ESP-IDF
+sdkconfig*
+build
+
+# Temporaries
+.cache

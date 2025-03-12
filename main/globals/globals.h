@@ -1,0 +1,32 @@
+#ifndef __GLOBALS_H__
+#define __GLOBALS_H__
+
+#include "driver/lora/lora.h"
+#include "driver/pms5003/pms5003.h"
+#include "driver/bme280/bme_task.h"
+
+// Communication macros.
+#define MAC_SIZE 6
+#define PACKET_SIZE 20 + MAC_SIZE
+#define SLEEP_PING_SIZE 4
+
+// SPI configuration for LoRa.
+#define SENSOR_LORA_RST_GPIO CONFIG_LORA_RST_GPIO
+#define SENSOR_LORA_CS_GPIO CONFIG_LORA_CS_GPIO
+#define SENSOR_LORA_MOSI_GPIO CONFIG_LORA_MOSI_GPIO
+#define SENSOR_LORA_MISO_GPIO CONFIG_LORA_MISO_GPIO
+#define SENSOR_LORA_SCK_GPIO CONFIG_LORA_SCK_GPIO
+#define SENSOR_LORA_HOST_ID SPI2_HOST
+
+// LoRa configurations.
+#define LORA_CODING_RATE 5
+#define LORA_BANDWIDTH 7
+#define LORA_SPREAD_FACTOR 7
+#define NORMAL_FREQUENCY 915e6
+
+extern lora_config_t sensor_node_lora;
+extern pms5003_config_t pms0;
+extern struct bme280_t bme;
+
+#endif
+
