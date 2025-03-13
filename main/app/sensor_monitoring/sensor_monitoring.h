@@ -61,24 +61,6 @@ void initReading(environmental_reading_t* sensorReadings, const bme_measurement_
                  const pms5003_measurement_t* pmsReading);
 
 
-// Check sensor data for indication of a fire.
-//
-// @param sensor_readings : readings from sensors.
-//
-// return: 1 for true, 0 for false.
-//
-int check_for_fire(environmental_reading_t* sensor_readings);
-
-
-// Send a fire alert to central node.
-//
-// @param mac : MAC address of esp32.
-//
-// @param lora_config : specific lora to transmit through.
-//
-void send_fire_alert(uint8_t* mac, lora_config_t* lora_config);
-
-
 // Validate that the mac address in the received packet matches the sensor node.
 //
 // @param mac : mac address of sensor node.
