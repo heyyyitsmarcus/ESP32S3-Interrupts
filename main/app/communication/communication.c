@@ -14,10 +14,6 @@ void communication()
 
     UBaseType_t high_water_mark;
     
-    // Send MAC address to central node.
-    lora_send_packet(mac, sizeof(mac), &sensor_node_lora);
-    ESP_LOGI(pcTaskGetName(NULL), "MAC address sent.");
-    
     lora_receive_continuous(&sensor_node_lora);
     while (1)
     {
