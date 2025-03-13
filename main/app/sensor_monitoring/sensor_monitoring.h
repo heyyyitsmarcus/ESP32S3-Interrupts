@@ -11,28 +11,6 @@
 #include "globals/globals.h"
 
 
-// Monitor environment for a set amount of seconds. If a fire is detected
-// will return early and change its frequency to FIRE_FREQUENCY.
-//
-// @param bme_data : bme data from queue.
-//
-// @param pms_data : pms data from queue.
-//
-// @param mq7_data : mq7 data from queue.
-//
-// @param sensor_readings : struct to consolidate all readings into.
-//
-// @param seconds_to_delay : how long to collect data for.
-//
-// @param lora_config : specific lora to transmit through.
-//
-// return: 1 if a fire was detected, 0 if no fire was detected.
-//
-int sleep_montior(bme_measurement_t* bme_data, pms5003_measurement_t* pms_data,
-                  environmental_reading_t* sensor_readings,
-                  int seconds_to_delay, lora_config_t* lora_config);
-
-
 // Collect sensor data from queues and initialize the environmental_reading_t struct.
 //
 // @param bme_data : struct to hold the bme data coming in from the queue.
@@ -72,14 +50,5 @@ void initReading(environmental_reading_t* sensorReadings, const bme_measurement_
 // return : 1 for true, 0 for false.
 //
 int validate_mac(uint8_t* mac, uint8_t* received_packet, int received_packet_length);
-
-
-// Check if a received packet is a sleep ping
-//
-// @param received_packet : packet recieved through lora.
-//
-// return : 1 for true, 0 for false.
-//
-int IsSleepPing(uint8_t* recieved_packet);
 
 #endif

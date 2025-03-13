@@ -39,18 +39,3 @@ int validate_mac(uint8_t* mac, uint8_t* received_packet, int received_packet_len
     return is_valid_mac;
 }
 
-
-int IsSleepPing(uint8_t* recieved_packet)
-{
-    const uint8_t sleep_ping[SLEEP_PING_SIZE] = {1, 1, 1, 1};
-    int is_sleep_ping = 1;
-    for (int i = 0; i < SLEEP_PING_SIZE; i++)
-    {
-        if (recieved_packet[i] != sleep_ping[i])
-        {
-            is_sleep_ping = 0;
-            break;
-        }
-    }
-    return is_sleep_ping;
-}
