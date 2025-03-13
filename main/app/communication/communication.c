@@ -46,10 +46,7 @@ void communication()
                 lora_send_packet(lora_buffer, sizeof(lora_buffer), &sensor_node_lora);
                 ESP_LOGI(pcTaskGetName(NULL), "Data sent to central. Returning to receive mode.");
                 lora_receive_continuous(&sensor_node_lora);
-            } else if (IsSleepPing(lora_buffer))
-            {
-                ESP_LOGI(pcTaskGetName(NULL), "Sleep ping received.");
-            }
+            } 
         }
     }
 }
