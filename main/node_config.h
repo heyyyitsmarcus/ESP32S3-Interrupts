@@ -1,9 +1,5 @@
-#ifndef __GLOBALS_H__
-#define __GLOBALS_H__
-
-#include "driver/lora/lora.h"
-#include "driver/pms5003/pms5003.h"
-#include "driver/bme280/bme_task.h"
+#ifndef __NODE_CONFIG_H__
+#define __NODE_CONFIG_H__
 
 // Communication macros.
 #define MAC_SIZE 6
@@ -23,10 +19,6 @@
 #define LORA_BANDWIDTH 7
 #define LORA_SPREAD_FACTOR 7
 #define NORMAL_FREQUENCY 915e6
-
-extern lora_config_t sensor_node_lora;
-extern pms5003_config_t pms0;
-extern struct bme280_t bme;
 
 #endif
 

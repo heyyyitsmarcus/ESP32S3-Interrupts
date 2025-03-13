@@ -6,5 +6,4 @@ idf_component_register(SRCS "sensor_node.c"
                             "app/packet_assembly/packet_assembly.c"
                             "app/communication/communication.c"
                             "app/sensor_monitoring/sensor_monitoring.c"
-                            "globals/globals.c"
                     INCLUDE_DIRS ".")
