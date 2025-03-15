@@ -1,7 +1,8 @@
 #include "packet_assembly.h"
 
-#include "app/sensor_monitoring/sensor_monitoring.h"
+#include "app/device/device.h"
 
+#include "node_config.h"
 
 #define UINT32_MASK_MSB  0xFF000000
 #define UINT32_MASK_MID1 0x00FF0000
@@ -17,10 +18,11 @@ static const uint32_t shifts[ sizeof( uint32_t ) ] = { BYTE_SHIFT * 3, BYTE_SHIF
 
 static uint8_t* split_32( const uint32_t value, uint8_t* index );
 
+static uint8_t* insert_mac( const uint8_t* mac, uint8_t* index );
 
-void prepare_packet(const uint32_t mac, const environmental_reading_t* reading, uint8_t* packet)
+void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, uint8_t* packet)
 {
-    packet = split_32( mac, packet );
+    packet = insert_mac( mac, packet );
 
     packet = split_32( ( uint32_t )reading->bme.temperature , packet );
     packet = split_32( ( uint32_t )reading->bme.pressure    , packet );
@@ -34,11 +36,22 @@ void prepare_packet(const uint32_t mac, const environmental_reading_t* reading, 
     packet = split_32( ( uint32_t )reading->pms.pm10_atm    , packet );
 }
 
+
 static uint8_t* split_32( const uint32_t value, uint8_t* index )
 {
     for ( uint8_t i = 0; i < sizeof( uint32_t ); i++, index++ )
     {
         *index = ( value & masks[ i ] ) >> shifts[ i ];
+    }
+    return index;
+}
+
+
+static uint8_t* insert_mac( const uint8_t* mac, uint8_t* index )
+{
+    for ( uint8_t i = 0; i < MAC_SIZE; i++, index++, mac++ )
+    {
+        *index = *mac;
     }
     return index;
 }

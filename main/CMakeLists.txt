@@ -4,6 +4,6 @@ idf_component_register(SRCS "sensor_node.c"
                             "driver/pms5003/pms5003.c"
                             "driver/lora/lora.c"
                             "app/packet_assembly/packet_assembly.c"
-                            "app/communication/communication.c"
-                            "app/sensor_monitoring/sensor_monitoring.c"
+                            "app/monitoring/monitoring.c"
+                            "app/device/device.c"
                     INCLUDE_DIRS ".")
