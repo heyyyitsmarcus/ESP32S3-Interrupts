@@ -1,3 +1,5 @@
+#include "monitoring.h"
+
 #include <stdbool.h>
 
 #include "esp_log.h"
@@ -15,7 +17,7 @@
 
 
 // Tag to identify module in logs
-const char* TAG = "monitoring";
+static const char* TAG = "monitoring";
 
 // Buffer to hold incoming and outgoing lora packets
 static uint8_t lora_buffer[ PACKET_SIZE ] = { 0 };
@@ -40,22 +42,28 @@ void monitoring()
 
     printf( "%02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], mac[ 2 ], mac[ 3 ], mac[ 4 ], mac[ 5 ]) ;
 
-    uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
-    ESP_LOGI( TAG, "%lu byte packet received.\n", received_packet_size );
-
-    if ( validate_mac( mac, lora_buffer, received_packet_size ) )
+    while ( true )
     {
-        // Handle data request.
-        ESP_LOGI( TAG, "Data request received." );
+        if ( lora_received( devices->lora_handle ) )
+        {
+            uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+            ESP_LOGI( TAG, "%lu byte packet received.", received_packet_size );
 
-        collect_sensor_data( devices, &sensor_readings );
+            if ( validate_mac( mac, lora_buffer, received_packet_size ) )
+            {
+                // Handle data request.
+                ESP_LOGI( TAG, "Data request received." );
 
-        prepare_packet( mac, &sensor_readings, lora_buffer );
+                collect_sensor_data( devices, &sensor_readings );
 
-        lora_send_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
-        ESP_LOGI( TAG, "Data sent to central. Returning to receive mode." );
-        lora_receive_continuous( devices->lora_handle );
-    } 
+                prepare_packet( mac, &sensor_readings, lora_buffer );
+
+                lora_send_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+                ESP_LOGI( TAG, "Data sent to central. Returning to receive mode.\n" );
+                lora_receive_continuous( devices->lora_handle );
+            } 
+        }
+    }
 }
 
 

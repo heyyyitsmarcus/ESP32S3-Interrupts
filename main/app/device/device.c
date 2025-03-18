@@ -15,27 +15,27 @@
 // Lora pin definitions.
 static lora_config_t lora = 
 {
-    .miso_gpio  = SENSOR_LORA_MISO_GPIO,
-    .sck_gpio   = SENSOR_LORA_SCK_GPIO,
-    .mosi_gpio  = SENSOR_LORA_MOSI_GPIO,
-    .cs_gpio    = SENSOR_LORA_CS_GPIO,
-    .rst_gpio   = SENSOR_LORA_RST_GPIO,
-    .host_id    = SENSOR_LORA_HOST_ID
+    .miso_gpio  = LORA_MISO_GPIO,
+    .sck_gpio   = LORA_SCK_GPIO,
+    .mosi_gpio  = LORA_MOSI_GPIO,
+    .cs_gpio    = LORA_CS_GPIO,
+    .rst_gpio   = LORA_RST_GPIO,
+    .host_id    = LORA_HOST_ID
 };
 
 // PMS pin definitions.
 static pms5003_config_t pms = 
 {
-    .reset_pin          = CONFIG_PMS_RST_GPIO,
-    .rxd_pin            = CONFIG_PMS_RXD_GPIO,
-    .txd_pin            = CONFIG_PMS_TXD_GPIO,
-    .set_pin            = CONFIG_PMS_SET_GPIO,
-    .uart_controller    = UART_NUM_1
+    .reset_pin          = PMS_RST_GPIO,
+    .rxd_pin            = PMS_RXD_GPIO,
+    .txd_pin            = PMS_TXD_GPIO,
+    .set_pin            = PMS_SET_GPIO,
+    .uart_controller    = PMS_UART_NUM
 };
 
 
 // bme i2c port
-static const uint8_t bme280_i2c_port = I2C_NUM_0;
+static const uint8_t bme280_i2c_port = BME_I2C_PORT;
 // bme callback definitions
 static struct bme280_dev bme =
 {
@@ -83,6 +83,7 @@ void device_init()
     lora_receive_continuous( &lora );
 
     // Initialize bme
+    bme280_i2c_config( bme280_i2c_port, BME_SDA_GPIO, BME_SCL_GPIO, BME_FREQUENCY );
     int8_t res = BME280_OK;
 
     res = bme280_init( &bme );

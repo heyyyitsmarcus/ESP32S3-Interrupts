@@ -36,8 +36,8 @@ menu "Sensor Node Configuration"
             int "BME_SDA_GPIO"
             default 41
 
-            config BME_SCK_GPIO
-            int "BME_SCK_GPIO"
+            config BME_SCL_GPIO
+            int "BME_SCL_GPIO"
             default 2
         endmenu
 
