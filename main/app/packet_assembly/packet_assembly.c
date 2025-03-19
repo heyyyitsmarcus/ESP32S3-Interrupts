@@ -4,6 +4,7 @@
 
 #include "node_config.h"
 
+
 #define UINT32_MASK_MSB  0xFF000000
 #define UINT32_MASK_MID1 0x00FF0000
 #define UINT32_MASK_MID2 0x0000FF00
@@ -18,7 +19,9 @@ static const uint32_t shifts[ sizeof( uint32_t ) ] = { BYTE_SHIFT * 3, BYTE_SHIF
 
 static uint8_t* split_32( const uint32_t value, uint8_t* index );
 
+
 static uint8_t* insert_mac( const uint8_t* mac, uint8_t* index );
+
 
 void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, uint8_t* packet)
 {
@@ -37,6 +40,13 @@ void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, 
 }
 
 
+// split a 32-bit value into 4 seperate indexes of a uint8_t array
+//
+// value  : value to split
+//
+// index  : index of array to begin from
+//
+// return : the next available index after split
 static uint8_t* split_32( const uint32_t value, uint8_t* index )
 {
     for ( uint8_t i = 0; i < sizeof( uint32_t ); i++, index++ )
@@ -47,6 +57,13 @@ static uint8_t* split_32( const uint32_t value, uint8_t* index )
 }
 
 
+// insert 6 bytes MAC address into array
+//
+// mac    : 6 byte device MAC address
+//
+// index  : index of array to begin from
+//
+// return : the next available index after insertion
 static uint8_t* insert_mac( const uint8_t* mac, uint8_t* index )
 {
     for ( uint8_t i = 0; i < MAC_SIZE; i++, index++, mac++ )

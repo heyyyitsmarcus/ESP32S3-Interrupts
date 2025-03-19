@@ -23,6 +23,14 @@ typedef struct
     uint16_t pm10_atm;
 } pms5003_measurement_t;
 
+typedef enum 
+{
+    PMS5003_OK,
+    PMS5003_LENGTH_ERROR,
+    PMS5003_DELIMITER_ERROR,
+    PMS5003_CHKSUM_ERROR
+} pms5003_status_t;
+
 void pms5003_setup(pms5003_config_t *inst);
 void pms5003_make_measurement(pms5003_config_t *inst, pms5003_measurement_t *reading);
 int pms5003_process_data(int len, uint8_t *data, pms5003_measurement_t *reading);

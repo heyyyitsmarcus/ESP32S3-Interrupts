@@ -9,7 +9,12 @@
 #include "driver/pms5003/pms5003.h"
 #include "driver/lora/lora.h"
 
+#include "app/monitoring/monitoring.h"
+
 #include "node_config.h"
+
+#define DIO0   0
+#define RXDONE 0
 
 
 // Lora pin definitions.
@@ -20,6 +25,8 @@ static lora_config_t lora =
     .mosi_gpio  = LORA_MOSI_GPIO,
     .cs_gpio    = LORA_CS_GPIO,
     .rst_gpio   = LORA_RST_GPIO,
+    .irq_gpio   = LORA_IRQ_GPIO,
+    .isr        = lora_isr,
     .host_id    = LORA_HOST_ID
 };
 
@@ -76,41 +83,38 @@ uint8_t* device_get_mac()
 }
 
 
-void device_init()
+int8_t device_init()
 {
     // Configure Lora
     lora_config( &lora, NORMAL_FREQUENCY, LORA_CODING_RATE, LORA_BANDWIDTH, LORA_SPREAD_FACTOR );
     lora_receive_continuous( &lora );
+    // Set digital I/O 0 to rxdone irq
+    lora_set_dio_mapping( DIO0, RXDONE, &lora );
 
     // Initialize bme
     bme280_i2c_config( bme280_i2c_port, BME_SDA_GPIO, BME_SCL_GPIO, BME_FREQUENCY );
     int8_t res = BME280_OK;
 
     res = bme280_init( &bme );
-    if ( res == BME280_OK )
-        printf("init GOOD\n");
 
     struct bme280_settings sett =
     {
-        .osr_h = 0x1,
-        .osr_p = 0x1,
-        .osr_t = 0x1,
+        .osr_h = BME280_OVERSAMPLING_1X,
+        .osr_p = BME280_OVERSAMPLING_1X,
+        .osr_t = BME280_OVERSAMPLING_1X,
         .standby_time = 0,
         .filter = 0
     };
 
     res = bme280_set_sensor_settings( BME280_SEL_OSR_HUM | BME280_SEL_OSR_PRESS | BME280_SEL_OSR_TEMP,
                                       &sett, &bme );
-    if ( res == BME280_OK )
-        printf("set settings GOOD\n");
-
     res = bme280_set_sensor_mode( BME280_POWERMODE_NORMAL, &bme );
-    if ( res == BME280_OK )
-        printf("set mode GOOD\n");
 
     // Initialize pms
     pms5003_setup( &pms );
     pms5003_normal_mode( &pms );
+
+    return res;
 }
 
     

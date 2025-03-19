@@ -4,6 +4,9 @@
 
 #include "esp_log.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
+
 #include "app/device/device.h"
 
 #include "app/packet_assembly/packet_assembly.h"
@@ -16,11 +19,19 @@
 #include "node_config.h"
 
 
+// static binary semaphore used to notify monitoring
+// task when to run
+static SemaphoreHandle_t sema_handle = NULL;
+static StaticSemaphore_t sema;
+
+
 // Tag to identify module in logs
 static const char* TAG = "monitoring";
 
+
 // Buffer to hold incoming and outgoing lora packets
 static uint8_t lora_buffer[ PACKET_SIZE ] = { 0 };
+
 
 // Struct to hold readings from sensors
 static environmental_reading_t sensor_readings = { 0 };
@@ -32,37 +43,49 @@ static bool validate_mac(uint8_t* mac, uint8_t* received_packet, uint32_t receiv
 static void collect_sensor_data( device_handles_t* devices, environmental_reading_t* reading );
 
 
+void semaphore_init()
+{
+    sema_handle = xSemaphoreCreateBinaryStatic( &sema );
+}
+
+
+void lora_isr()
+{
+    BaseType_t higher_priority_task_woken = pdFALSE;
+    // notify monitoring task of reception event by unlocking semaphore
+    xSemaphoreGiveFromISR( sema_handle, &higher_priority_task_woken );
+    portYIELD_FROM_ISR( higher_priority_task_woken );
+}
+
+
 // Main monitoring function
 void monitoring()
 {
     device_handles_t* devices = device_get_handles();
 
-    // Get mac address
     uint8_t* mac = device_get_mac();
-
-    printf( "%02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], mac[ 2 ], mac[ 3 ], mac[ 4 ], mac[ 5 ]) ;
 
     while ( true )
     {
-        if ( lora_received( devices->lora_handle ) )
+        // Block until lora isr unlocks semaphore signifying reception event
+        xSemaphoreTake( sema_handle, portMAX_DELAY );
+
+        uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+
+        if ( ( received_packet_size != 0 ) && validate_mac( mac, lora_buffer, received_packet_size ) )
         {
-            uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
             ESP_LOGI( TAG, "%lu byte packet received.", received_packet_size );
+            // Handle data request.
+            ESP_LOGI( TAG, "Data request received." );
 
-            if ( validate_mac( mac, lora_buffer, received_packet_size ) )
-            {
-                // Handle data request.
-                ESP_LOGI( TAG, "Data request received." );
+            collect_sensor_data( devices, &sensor_readings );
 
-                collect_sensor_data( devices, &sensor_readings );
+            prepare_packet( mac, &sensor_readings, lora_buffer );
 
-                prepare_packet( mac, &sensor_readings, lora_buffer );
-
-                lora_send_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
-                ESP_LOGI( TAG, "Data sent to central. Returning to receive mode.\n" );
-                lora_receive_continuous( devices->lora_handle );
-            } 
-        }
+            lora_send_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+            ESP_LOGI( TAG, "Data sent to central. Returning to receive mode.\n" );
+            lora_receive_continuous( devices->lora_handle );
+        } 
     }
 }
 

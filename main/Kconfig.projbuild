@@ -61,6 +61,10 @@ menu "Sensor Node Configuration"
             config LORA_SCK_GPIO
             int "LORA_SCK_GPIO"
             default 17
+
+            config LORA_IRQ_GPIO
+            int "LORA_IRQ_GPIO"
+            default 18
         endmenu
 
     endmenu

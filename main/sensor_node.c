@@ -4,14 +4,27 @@
 #include "app/device/device.h"
 #include "app/monitoring/monitoring.h"
 
+#include "esp_log.h"
+
 #define STACK_SIZE 1024 * 2
 
-StaticTask_t monitoring_task_buffer;
+StaticTask_t monitoring_tcb;
 StackType_t  monitoring_stack[ STACK_SIZE ];
 
 void app_main(void)
 {
-    device_init();
+    semaphore_init();
 
-    xTaskCreateStatic( monitoring, "Monitoring", STACK_SIZE, NULL, 2, monitoring_stack, &monitoring_task_buffer );
+    int8_t res = device_init();
+    if ( res == 0 )
+        ESP_LOGI( NULL, "Device initialization success.");
+
+
+    uint8_t* mac = device_get_mac();
+    ESP_LOGI( NULL, "Node MAC: %02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], 
+                                                            mac[ 2 ], mac[ 3 ], 
+                                                            mac[ 4 ], mac[ 5 ]) ;
+
+    xTaskCreateStatic( monitoring, "Monitoring", STACK_SIZE, NULL, 2, 
+                       monitoring_stack, &monitoring_tcb );
 }

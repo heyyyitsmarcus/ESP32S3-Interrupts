@@ -17,6 +17,8 @@ typedef struct {
     gpio_num_t mosi_gpio;
     gpio_num_t cs_gpio;
     gpio_num_t rst_gpio;
+    gpio_num_t irq_gpio;
+    void (*isr)(void*);
     spi_device_handle_t device_handle;
     spi_host_device_t host_id;
 } lora_config_t;

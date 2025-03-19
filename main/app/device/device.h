@@ -35,7 +35,9 @@ uint8_t* device_get_mac();
 
 
 // Initialize all devices (lora, bme, pms)
-void device_init();
+//
+// return: 0 for success
+int8_t device_init();
 
 
 #endif

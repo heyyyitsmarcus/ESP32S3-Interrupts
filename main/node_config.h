@@ -13,6 +13,7 @@
 #define LORA_MISO_GPIO   CONFIG_LORA_MISO_GPIO
 #define LORA_SCK_GPIO    CONFIG_LORA_SCK_GPIO
 #define LORA_HOST_ID     SPI2_HOST
+#define LORA_IRQ_GPIO    CONFIG_LORA_IRQ_GPIO
 
 // LoRa configurations.
 #define LORA_CODING_RATE        5

@@ -1,7 +1,5 @@
 #include "pms5003.h"
 
-#include "esp_log.h"
-
 #define BAUD_RATE             9600
 #define DATA_PACKET_SIZE      32
 #define START_CHARACTER_1     0x42
@@ -67,15 +65,13 @@ int pms5003_process_data(int len, uint8_t *data, pms5003_measurement_t *reading)
     // read the first.
     if (len % DATA_PACKET_SIZE != 0)
     {
-        ESP_LOGE(TAG, "Data array length %d not divisible by data packet length %d", len, DATA_PACKET_SIZE);
-        return 0;
+        return PMS5003_LENGTH_ERROR;
     }
 
     // Start of frame delimiter test.
     if (data[0] != START_CHARACTER_1 || data[1] != START_CHARACTER_2 || ((data[2] << 8) + data[3]) != FRAME_LEN)
     {
-        ESP_LOGE(TAG, "Frame delimeter test fail!");
-        return 0;
+        return PMS5003_DELIMITER_ERROR;
     }
 
     // Checksum test
@@ -86,8 +82,7 @@ int pms5003_process_data(int len, uint8_t *data, pms5003_measurement_t *reading)
     checksum_l = checksum & 0xFF;
     if (data[CHECK_CODE_HI_INDEX] != checksum_h || data[CHECK_CODE_LOW_INDEX] != checksum_l)
     {
-        ESP_LOGE(TAG, "Checksum test fail!");
-        return 0;
+        return PMS5003_CHKSUM_ERROR;
     }
 
     // Reading data
@@ -98,7 +93,7 @@ int pms5003_process_data(int len, uint8_t *data, pms5003_measurement_t *reading)
     reading->pm2_5_atm = (data[12] << 8) + data[13];
     reading->pm10_atm = (data[14] << 8) + data[15];
 
-    return 1;
+    return PMS5003_OK;
 }
 
 void pms5003_normal_mode(pms5003_config_t *inst)
