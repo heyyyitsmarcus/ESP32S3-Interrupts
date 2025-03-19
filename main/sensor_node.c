@@ -8,6 +8,8 @@
 
 #define STACK_SIZE 1024 * 2
 
+static const char* TAG = "main";
+
 StaticTask_t monitoring_tcb;
 StackType_t  monitoring_stack[ STACK_SIZE ];
 
@@ -17,11 +19,11 @@ void app_main(void)
 
     int8_t res = device_init();
     if ( res == 0 )
-        ESP_LOGI( NULL, "Device initialization success.");
+        ESP_LOGI( TAG, "Device initialization success.");
 
 
     uint8_t* mac = device_get_mac();
-    ESP_LOGI( NULL, "Node MAC: %02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], 
+    ESP_LOGI( TAG, "Node MAC: %02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], 
                                                             mac[ 2 ], mac[ 3 ], 
                                                             mac[ 4 ], mac[ 5 ]) ;
 

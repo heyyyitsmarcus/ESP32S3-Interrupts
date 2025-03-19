@@ -96,6 +96,7 @@ int8_t device_init()
     int8_t res = BME280_OK;
 
     res = bme280_init( &bme );
+    res = bme280_init( &bme );
 
     struct bme280_settings sett =
     {
