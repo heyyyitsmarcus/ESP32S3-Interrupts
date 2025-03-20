@@ -83,6 +83,18 @@ uint8_t* device_get_mac()
 }
 
 
+void device_lora_enable_intr()
+{
+    gpio_intr_enable( lora.irq_gpio );
+}
+
+
+void device_lora_disable_intr()
+{
+    gpio_intr_disable( lora.irq_gpio );
+}
+
+
 int8_t device_init()
 {
     // Configure Lora

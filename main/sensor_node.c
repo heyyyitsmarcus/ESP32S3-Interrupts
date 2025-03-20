@@ -24,9 +24,9 @@ void app_main(void)
 
     uint8_t* mac = device_get_mac();
     ESP_LOGI( TAG, "Node MAC: %02x%02x%02x%02x%02x%02x\n", mac[ 0 ], mac[ 1 ], 
-                                                            mac[ 2 ], mac[ 3 ], 
-                                                            mac[ 4 ], mac[ 5 ]) ;
+                                                           mac[ 2 ], mac[ 3 ], 
+                                                           mac[ 4 ], mac[ 5 ]) ;
 
-    xTaskCreateStatic( monitoring, "Monitoring", STACK_SIZE, NULL, 2, 
-                       monitoring_stack, &monitoring_tcb );
+    xTaskCreateStaticPinnedToCore( monitoring, "Monitoring", STACK_SIZE, NULL, 2, 
+                                   monitoring_stack, &monitoring_tcb, 0 );
 }

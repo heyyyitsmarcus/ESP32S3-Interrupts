@@ -55,6 +55,10 @@ void lora_isr()
     // notify monitoring task of reception event by unlocking semaphore
     xSemaphoreGiveFromISR( sema_handle, &higher_priority_task_woken );
     portYIELD_FROM_ISR( higher_priority_task_woken );
+
+    // Disabling interrupt before exit to avoid being interrupted while
+    // handling a transmission
+    device_lora_disable_intr();
 }
 
 
@@ -69,6 +73,10 @@ void monitoring()
     {
         // Block until lora isr unlocks semaphore signifying reception event
         xSemaphoreTake( sema_handle, portMAX_DELAY );
+
+        // For now slight delay is needed because response time is quite fast compared to 
+        // central-node which is not interrupt driven
+        vTaskDelay( pdMS_TO_TICKS( 500 ) );
 
         uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
 
@@ -86,6 +94,9 @@ void monitoring()
             ESP_LOGI( TAG, "Data sent to central. Returning to receive mode.\n" );
             lora_receive_continuous( devices->lora_handle );
         } 
+
+        // Re-enabling interrupt since current transmission has been handled
+        device_lora_enable_intr();
     }
 }
 

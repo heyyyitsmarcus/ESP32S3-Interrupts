@@ -34,6 +34,14 @@ device_handles_t* device_get_handles();
 uint8_t* device_get_mac();
 
 
+// Enable the lora gpio interrupt
+void device_lora_enable_intr();
+
+
+// Disable the lora gpio interrupt
+void device_lora_disable_intr();
+
+
 // Initialize all devices (lora, bme, pms)
 //
 // return: 0 for success
