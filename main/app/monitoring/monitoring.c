@@ -1,6 +1,7 @@
 #include "monitoring.h"
 
 #include <stdbool.h>
+#include <string.h>
 
 #include "esp_log.h"
 
@@ -8,8 +9,6 @@
 #include "freertos/semphr.h"
 
 #include "app/device/device.h"
-
-#include "app/packet_assembly/packet_assembly.h"
 
 #include "driver/bme280/bme280.h"
 #include "driver/bme280/bme280_defs.h"
@@ -41,6 +40,9 @@ static bool validate_mac(uint8_t* mac, uint8_t* received_packet, uint32_t receiv
 
 
 static void collect_sensor_data( device_handles_t* devices, environmental_reading_t* reading );
+
+
+static void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, uint8_t* packet);
 
 
 void semaphore_init()
@@ -135,5 +137,38 @@ static void collect_sensor_data( device_handles_t* devices, environmental_readin
 {
     pms5003_make_measurement( devices->pms_handle, &reading->pms );
     bme280_get_sensor_data( BME280_ALL, &reading->bme, devices->bme_handle );
+}
+
+
+// construct data packet consisting of device MAC address followed by sensor readings
+//
+// mac      : 6 byte device MAC address
+//
+// reading  : structure containing readings to place into packet
+//
+// packet   : buffer array used as the data packet
+static void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, uint8_t* packet)
+{
+    memcpy( packet, mac, MAC_SIZE );
+    packet += MAC_SIZE;
+
+    memcpy( packet, &reading->bme.temperature, sizeof( double ) );
+    packet += sizeof( double );
+    memcpy( packet, &reading->bme.pressure   , sizeof( double ) );
+    packet += sizeof( double );
+    memcpy( packet, &reading->bme.humidity   , sizeof( double ) );
+    packet += sizeof( double );
+
+    memcpy( packet, &reading->pms.pm1_0_std  , sizeof( uint16_t ) );
+    packet+= sizeof( uint16_t );
+    memcpy( packet, &reading->pms.pm2_5_std  , sizeof( uint16_t ) );
+    packet+= sizeof( uint16_t );
+    memcpy( packet, &reading->pms.pm10_std   , sizeof( uint16_t ) );
+    packet+= sizeof( uint16_t );
+    memcpy( packet, &reading->pms.pm1_0_atm  , sizeof( uint16_t ) );
+    packet+= sizeof( uint16_t );
+    memcpy( packet, &reading->pms.pm2_5_atm  , sizeof( uint16_t ) );
+    packet+= sizeof( uint16_t );
+    memcpy( packet, &reading->pms.pm10_atm   , sizeof( uint16_t ) );
 }
 
