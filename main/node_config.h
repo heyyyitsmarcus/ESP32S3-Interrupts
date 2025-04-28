@@ -34,5 +34,7 @@
 #define BME_I2C_PORT     I2C_NUM_0
 #define BME_FREQUENCY    100E3
 
+#define USE_INTERRUPTS 0
+
 #endif
 

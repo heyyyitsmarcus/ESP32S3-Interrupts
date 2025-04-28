@@ -559,6 +559,7 @@ int lora_init(lora_config_t* lora_config)
     gpio_set_direction(lora_config->cs_gpio, GPIO_MODE_OUTPUT);
     gpio_set_level(lora_config->cs_gpio, 1);
 
+#if USE_INTERRUPTS
     gpio_reset_pin(lora_config->irq_gpio);
     gpio_set_direction(lora_config->irq_gpio, GPIO_MODE_INPUT);
     gpio_set_level(lora_config->irq_gpio, 0);
@@ -566,6 +567,7 @@ int lora_init(lora_config_t* lora_config)
     gpio_install_isr_service(0); 
     gpio_isr_handler_add(lora_config->irq_gpio, lora_config->isr, NULL);
     gpio_intr_enable(lora_config->irq_gpio);
+#endif
 
     spi_bus_config_t bus = {
         .miso_io_num = lora_config->miso_gpio,

@@ -25,8 +25,10 @@ static lora_config_t lora =
     .mosi_gpio  = LORA_MOSI_GPIO,
     .cs_gpio    = LORA_CS_GPIO,
     .rst_gpio   = LORA_RST_GPIO,
+#if USE_INTERRUPTS
     .irq_gpio   = LORA_IRQ_GPIO,
     .isr        = lora_isr,
+#endif
     .host_id    = LORA_HOST_ID
 };
 
@@ -100,8 +102,10 @@ int8_t device_init()
     // Configure Lora
     lora_config( &lora, NORMAL_FREQUENCY, LORA_CODING_RATE, LORA_BANDWIDTH, LORA_SPREAD_FACTOR );
     lora_receive_continuous( &lora );
+#if USE_INTERRUPTS
     // Set digital I/O 0 to rxdone irq
     lora_set_dio_mapping( DIO0, RXDONE, &lora );
+#endif
 
     // Initialize bme
     bme280_i2c_config( bme280_i2c_port, BME_SDA_GPIO, BME_SCL_GPIO, BME_FREQUENCY );

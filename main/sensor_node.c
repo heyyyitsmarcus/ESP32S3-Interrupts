@@ -6,7 +6,7 @@
 
 #include "esp_log.h"
 
-#define STACK_SIZE 1024 * 2
+#define STACK_SIZE 5000
 
 static const char* TAG = "main";
 
@@ -15,7 +15,9 @@ StackType_t  monitoring_stack[ STACK_SIZE ];
 
 void app_main(void)
 {
+#if USE_INTERRUPTS
     semaphore_init();
+#endif
 
     int8_t res = device_init();
     if ( res == 0 )

@@ -18,12 +18,6 @@
 #include "node_config.h"
 
 
-// static binary semaphore used to notify monitoring
-// task when to run
-static SemaphoreHandle_t sema_handle = NULL;
-static StaticSemaphore_t sema;
-
-
 // Tag to identify module in logs
 static const char* TAG = "monitoring";
 
@@ -45,6 +39,13 @@ static void collect_sensor_data( device_handles_t* devices, environmental_readin
 static void prepare_packet(const uint8_t* mac, const environmental_reading_t* reading, uint8_t* packet);
 
 
+#if USE_INTERRUPTS
+// static binary semaphore used to notify monitoring
+// task when to run
+static SemaphoreHandle_t sema_handle = NULL;
+static StaticSemaphore_t sema;
+
+
 void semaphore_init()
 {
     sema_handle = xSemaphoreCreateBinaryStatic( &sema );
@@ -56,12 +57,14 @@ void lora_isr()
     BaseType_t higher_priority_task_woken = pdFALSE;
     // notify monitoring task of reception event by unlocking semaphore
     xSemaphoreGiveFromISR( sema_handle, &higher_priority_task_woken );
-    portYIELD_FROM_ISR( higher_priority_task_woken );
 
     // Disabling interrupt before exit to avoid being interrupted while
     // handling a transmission
     device_lora_disable_intr();
+
+    portYIELD_FROM_ISR( higher_priority_task_woken );
 }
+#endif
 
 
 // Main monitoring function
@@ -73,14 +76,20 @@ void monitoring()
 
     while ( true )
     {
+#if USE_INTERRUPTS
+
         // Block until lora isr unlocks semaphore signifying reception event
         xSemaphoreTake( sema_handle, portMAX_DELAY );
 
-        // For now slight delay is needed because response time is quite fast compared to 
-        // central-node which is not interrupt driven
+        uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+
         vTaskDelay( pdMS_TO_TICKS( 500 ) );
 
+#else
+        while( !lora_received( devices->lora_handle ) )    vTaskDelay( pdMS_TO_TICKS( 100 ) );
         uint32_t received_packet_size = lora_receive_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
+
+#endif
 
         if ( ( received_packet_size != 0 ) && validate_mac( mac, lora_buffer, received_packet_size ) )
         {
@@ -94,11 +103,16 @@ void monitoring()
 
             lora_send_packet( lora_buffer, sizeof( lora_buffer ), devices->lora_handle );
             ESP_LOGI( TAG, "Data sent to central. Returning to receive mode.\n" );
-            lora_receive_continuous( devices->lora_handle );
         } 
+        lora_receive_continuous( devices->lora_handle );
+
+#if USE_INTERRUPTS
 
         // Re-enabling interrupt since current transmission has been handled
         device_lora_enable_intr();
+
+#endif
+
     }
 }
 
