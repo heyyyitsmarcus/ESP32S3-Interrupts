@@ -1,6 +1,21 @@
-# ESP-IDF
-sdkconfig*
-build
+# Ignore build files
+build/
+*.o
+*.elf
+*.bin
 
-# Temporaries
-.cache
+# Ignore ESP-IDF settings
+sdkconfig.old
+sdkconfig
+.project
+.cproject
+.idea/
+.vscode/
+*.pyc
+*.pyo
+__pycache__/
+
+# ESP-IDF specific
+*.log
+*.map
+

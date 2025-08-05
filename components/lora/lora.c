@@ -2,6 +2,10 @@
 
 static const char* TAG = "LORA";
 
+// global LoRa interrupt flag for G0 pin implementation:
+
+volatile bool lora_interrupt_triggered = false;
+
 static spi_device_handle_t _spi;
 static int _implicit;
 static long _frequency;
@@ -10,6 +14,7 @@ static int _cr = 0;
 static int _sbw = 0;
 static int _sf = 0;
 
+static SemaphoreHandle_t lora_semaphore;
 
 void lora_write_reg (int reg, int val)
 {
@@ -19,7 +24,6 @@ void lora_write_reg (int reg, int val)
     spi_transaction_t t = { .flags = 0, .length = 8 * sizeof (out), .tx_buffer = out, .rx_buffer = in };
     spi_device_transmit (_spi, &t);
 }
-
 
 void lora_write_reg_buffer (int reg, uint8_t* val, int len)
 {
@@ -71,9 +75,58 @@ void lora_read_reg_buffer (int reg, uint8_t* val, int len)
     free (in);
 }
 
+// INTERRUPT IMPLEMENTATION
+
+static void IRAM_ATTR lora_dio0_isr_handler(void* arg) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    if (lora_semaphore != NULL)
+        xSemaphoreGiveFromISR(lora_semaphore, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken)
+        portYIELD_FROM_ISR();
+}
+
+int lora_wait_for_packet_tick(TickType_t ticks_to_wait) {
+    if (lora_semaphore == NULL) {
+        ESP_LOGE("LoRa", "Semaphore not initialized!");
+        return 0;
+    }
+    if (xSemaphoreTake(lora_semaphore, ticks_to_wait) == pdTRUE) {
+        // Interrupt happened, check IRQ flags
+        uint8_t irq_flags = lora_read_reg(REG_IRQ_FLAGS);
+        ESP_LOGI("lora_received", "IRQ flags = 0x%x", irq_flags);
+
+        return 1;
+    }
+    return 0;  // Timeout or no packet
+}
+
+void lora_setup_interrupt() {
+    // Map DIO0 to RX_DONE
+    lora_write_reg(REG_DIO_MAPPING_1, 0x00);
+
+    // Configure DIO0 pin (GPIO18) for interrupt
+    gpio_config_t io_conf = {
+        .intr_type = GPIO_INTR_POSEDGE, // Interrupt on rising edge
+        .mode = GPIO_MODE_INPUT,
+        .pin_bit_mask = (1ULL << LORA_DIO0_GPIO),
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    };
+    gpio_config(&io_conf);
+
+    lora_semaphore = xSemaphoreCreateBinary(); // Create binary semaphore before enabling interrupts
+    ESP_LOGI("LORA", "created the semaphore!");
+    configASSERT(lora_semaphore != NULL); // sanity check
+
+    gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1); // Install GPIO ISR service
+    gpio_isr_handler_add(LORA_DIO0_GPIO, lora_dio0_isr_handler, NULL); // Attach ISR handler
+}
+
+//
 
 int lora_init (void)
 {
+    ESP_LOGI("LORA", "Entering lora_init()");
     esp_err_t ret;
     gpio_reset_pin (LORA_RST_GPIO);
     gpio_set_direction (LORA_RST_GPIO, GPIO_MODE_OUTPUT);
@@ -96,8 +149,12 @@ int lora_init (void)
                                           .queue_size = 7,
                                           .flags = 0,
                                           .pre_cb = NULL };
+
     ret = spi_bus_add_device (LORA_SPI_NUM, &dev, &_spi);
     assert (ret == ESP_OK);
+
+    lora_setup_interrupt(); // above-defined interrupt setup function
+
     lora_reset ();
 
     // Check Version
@@ -106,7 +163,7 @@ int lora_init (void)
     while (i++ < TIMEOUT_RESET)
     {
         version = lora_read_reg (REG_VERSION);
-        ESP_LOGD (TAG, "version=0x%02x", version);
+        ESP_LOGI (TAG, "version=0x%02x", version);
         if (version == 0x12)
             break;
         vTaskDelay (2);
@@ -207,11 +264,13 @@ int lora_receive_packet (uint8_t* buf, int size)
 
     // Check interrupts.
     int irq = lora_read_reg (REG_IRQ_FLAGS);
-    lora_write_reg (REG_IRQ_FLAGS, irq);
+
     if ((irq & IRQ_RX_DONE_MASK) == 0)
         return 0;
     if (irq & IRQ_PAYLOAD_CRC_ERROR_MASK)
         return 0;
+
+    lora_write_reg (REG_IRQ_FLAGS, irq);
 
     // Find packet size.
     if (_implicit)
@@ -220,8 +279,10 @@ int lora_receive_packet (uint8_t* buf, int size)
         len = lora_read_reg (REG_RX_NB_BYTES);
 
     // Transfer data from radio.
-    lora_idle ();
     lora_write_reg (REG_FIFO_ADDR_PTR, lora_read_reg (REG_FIFO_RX_CURRENT_ADDR));
+
+    lora_idle ();
+
     if (len > size)
         len = size;
 #if BUFFER_IO
@@ -230,6 +291,9 @@ int lora_receive_packet (uint8_t* buf, int size)
     for (int i = 0; i < len; i++)
         *buf++ = lora_read_reg (REG_FIFO);
 #endif
+
+    // Now that we're done reading, clear only RX_DONE
+    lora_write_reg(REG_IRQ_FLAGS, IRQ_RX_DONE_MASK);
 
     return len;
 }
@@ -475,12 +539,20 @@ void lora_disable_crc (void)
 }
 
 
-int lora_received (void)
-{
-    if (lora_read_reg (REG_IRQ_FLAGS) & IRQ_RX_DONE_MASK)
-        return 1;
-    return 0;
-}
+// int lora_received(void) {
+
+//     //ESP_LOGI("INT", "lora_interrupt_triggered = %d", lora_interrupt_triggered);
+//     if (!lora_interrupt_triggered) return 0;
+
+//     lora_interrupt_triggered = false;
+
+//     if (lora_read_reg(REG_IRQ_FLAGS) & IRQ_RX_DONE_MASK) {
+//         return 1;
+//     }
+//     return 0;
+// }
+
+// using the lora_wait_for_packet_tick function instead of the above lora_received() bool function
 
 
 int lora_get_irq (void) { return (lora_read_reg (REG_IRQ_FLAGS)); }

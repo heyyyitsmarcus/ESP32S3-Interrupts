@@ -5,8 +5,10 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h" // added for semaphore use
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_sleep.h" // for light sleep functionality
 #include "driver/spi_master.h"
 #include "driver/gpio.h"
 
@@ -17,6 +19,8 @@
 #define LORA_MOSI_GPIO 15
 #define LORA_MISO_GPIO 16
 #define LORA_SCK_GPIO 17
+#define LORA_DIO0_GPIO 18 // DIO0 (G0) interrupt pin from LoRa module to ESP32-S3
+extern volatile bool lora_interrupt_triggered; // interrupt trigger bool
 // Register definitions
 #define REG_FIFO 0x00
 #define REG_OP_MODE 0x01
@@ -46,6 +50,7 @@
 #define REG_DIO_MAPPING_1 0x40
 #define REG_DIO_MAPPING_2 0x41
 #define REG_VERSION 0x42
+
 // Transceiver modes
 #define MODE_LONG_RANGE_MODE 0x80
 #define MODE_SLEEP 0x00
@@ -98,5 +103,6 @@ float lora_packet_snr (void);
 void lora_close (void);
 int lora_initialized (void);
 void lora_dump_registers (void);
+int lora_wait_for_packet_tick(); // interrupt logic using semaphores
 
 #endif
